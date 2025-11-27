@@ -71,6 +71,67 @@
       <div class="outer">
         <section id="main">
   
+    <article id="post-ESKF的构建流程模板" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
+  <div class="article-meta">
+    <a href="/2025/11/27/ESKF%E7%9A%84%E6%9E%84%E5%BB%BA%E6%B5%81%E7%A8%8B%E6%A8%A1%E6%9D%BF/" class="article-date">
+  <time class="dt-published" datetime="2025-11-27T13:01:26.000Z" itemprop="datePublished">2025-11-27</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="p-name article-title" href="/2025/11/27/ESKF%E7%9A%84%E6%9E%84%E5%BB%BA%E6%B5%81%E7%A8%8B%E6%A8%A1%E6%9D%BF/">ESKF的构建流程模板</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="e-content article-entry" itemprop="articleBody">
+      
+        <hr>
+<p>在实际工程中，我们常常面对“任意组合”的多传感器系统，例如轮速计 + LiDAR、IMU + 编码器、或更复杂的视觉惯性方案。无论传感器如何组合，其核心问题始终是：如何在噪声、偏置与非线性条件下构建一个一致、鲁棒、可递推的状态估计器？ 本博客的目的，就是给出一套可泛化的、可直接落地的 ESKF（误差状态卡尔曼滤波）建模与实现流程。</p>
+<hr>
+<h2 id="0-记号与目标"><a href="#0-记号与目标" class="headerlink" title="0. 记号与目标"></a>0. 记号与目标</h2><ul>
+<li>真值状态：<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mi>x</mi><mtext>true</mtext></msup><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">x^\text{true}(t)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1.0436em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathnormal">x</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.7936em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord text mtight"><span class="mord mtight">true</span></span></span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord mathnormal">t</span><span class="mclose">)</span></span></span></span></li>
+<li>名义状态：<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>x</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">x(t)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal">x</span><span class="mopen">(</span><span class="mord mathnormal">t</span><span class="mclose">)</span></span></span></span>（滤波器内部集成的）</li>
+<li>误差状态：<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>δ</mi><mi>x</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\delta x(t)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.03785em;">δ</span><span class="mord mathnormal">x</span><span class="mopen">(</span><span class="mord mathnormal">t</span><span class="mclose">)</span></span></span></span>（线性小量，用来做 KF）</li>
+</ul>
+<p>目标：给定连续非线性系统</p>
+<span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msup><mover accent="true"><mi>x</mi><mo>˙</mo></mover><mtext>true</mtext></msup><mo>=</mo><mi>f</mi><mo stretchy="false">(</mo><msup><mi>x</mi><mtext>true</mtext></msup><mo separator="true">,</mo><mi>u</mi><mo separator="true">,</mo><mi>w</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">
+\dot{x}^\text{true} = f(x^\text{true}, u, w)
+</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8436em;"></span><span class="mord"><span class="mord accent"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.6679em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathnormal">x</span></span><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="accent-body" style="left:-0.1111em;"><span class="mord">˙</span></span></span></span></span></span></span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8436em;"><span style="top:-3.113em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord text mtight"><span class="mord mtight">true</span></span></span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:1.0936em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.10764em;">f</span><span class="mopen">(</span><span class="mord"><span class="mord mathnormal">x</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8436em;"><span style="top:-3.113em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord text mtight"><span class="mord mtight">true</span></span></span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal">u</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal" style="margin-right:0.02691em;">w</span><span class="mclose">)</span></span></span></span></span>
+
+<p>观测模型</p>
+<span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mi>y</mi><mo>=</mo><mi>h</mi><mo stretchy="false">(</mo><msup><mi>x</mi><mtext>true</mtext></msup><mo separator="true">,</mo><mi>n</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">
+y = h(x^\text{true}, n)
+</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.625em;vertical-align:-0.1944em;"></span><span class="mord mathnormal" style="margin-right:0.03588em;">y</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:1.0936em;vertical-align:-0.25em;"></span><span class="mord mathnormal">h</span><span class="mopen">(</span><span class="mord"><span class="mord mathnormal">x</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8436em;"><span style="top:-3.113em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord text mtight"><span class="mord mtight">true</span></span></span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal">n</span><span class="mclose">)</span></span></span></span></span>
+        
+          <p class="article-more-link">
+            <a href="/2025/11/27/ESKF%E7%9A%84%E6%9E%84%E5%BB%BA%E6%B5%81%E7%A8%8B%E6%A8%A1%E6%9D%BF/#more">Read More</a>
+          </p>
+        
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://example.com/2025/11/27/ESKF%E7%9A%84%E6%9E%84%E5%BB%BA%E6%B5%81%E7%A8%8B%E6%A8%A1%E6%9D%BF/" data-id="cuide1xp24V9qJfw2ql0J1fiY" data-title="ESKF的构建流程模板" class="article-share-link"><span class="fa fa-share">Share</span></a>
+      
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/SLAM/" rel="tag">SLAM</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+
+  
     <article id="post-IMU-轮速计的ESKF简明介绍" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
   <div class="article-meta">
     <a href="/2025/11/17/IMU-%E8%BD%AE%E9%80%9F%E8%AE%A1%E7%9A%84ESKF%E7%AE%80%E6%98%8E%E4%BB%8B%E7%BB%8D/" class="article-date">
@@ -111,7 +172,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://example.com/2025/11/17/IMU-%E8%BD%AE%E9%80%9F%E8%AE%A1%E7%9A%84ESKF%E7%AE%80%E6%98%8E%E4%BB%8B%E7%BB%8D/" data-id="cuid0I7RoHkFOXun0c3EaFlda" data-title="IMU+轮速计的ESKF简明介绍" class="article-share-link"><span class="fa fa-share">Share</span></a>
+      <a data-url="http://example.com/2025/11/17/IMU-%E8%BD%AE%E9%80%9F%E8%AE%A1%E7%9A%84ESKF%E7%AE%80%E6%98%8E%E4%BB%8B%E7%BB%8D/" data-id="cuidKWZeZiN_wXeTiDh2feLvi" data-title="IMU+轮速计的ESKF简明介绍" class="article-share-link"><span class="fa fa-share">Share</span></a>
       
       
       
@@ -156,7 +217,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://example.com/2025/11/11/%E3%80%8A%E5%9B%9B%E6%B5%B7%E3%80%8B%EF%BC%8C%E4%B8%8D%E6%98%AF%E4%B8%80%E9%83%A8%E5%A5%BD%E7%9A%84%E7%94%B5%E5%BD%B1%EF%BC%8C%E4%BD%86%E6%98%AF%E5%BE%88%E9%9F%A9%E5%AF%92%E3%80%82/" data-id="cuidS__RnSVNh4a0kTw6d-dAX" data-title="《四海》，不是一部好的电影，但是很韩寒。" class="article-share-link"><span class="fa fa-share">Share</span></a>
+      <a data-url="http://example.com/2025/11/11/%E3%80%8A%E5%9B%9B%E6%B5%B7%E3%80%8B%EF%BC%8C%E4%B8%8D%E6%98%AF%E4%B8%80%E9%83%A8%E5%A5%BD%E7%9A%84%E7%94%B5%E5%BD%B1%EF%BC%8C%E4%BD%86%E6%98%AF%E5%BE%88%E9%9F%A9%E5%AF%92%E3%80%82/" data-id="cuidq_qrRxzWlsXUUIpTQg6fe" data-title="《四海》，不是一部好的电影，但是很韩寒。" class="article-share-link"><span class="fa fa-share">Share</span></a>
       
       
       
@@ -201,7 +262,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://example.com/2025/11/07/%E5%8D%9A%E5%AE%A2%E7%9A%84%E5%BC%80%E5%A7%8B/" data-id="cuid9gSrgtGF6NIatx76DOudT" data-title="博客的开始" class="article-share-link"><span class="fa fa-share">Share</span></a>
+      <a data-url="http://example.com/2025/11/07/%E5%8D%9A%E5%AE%A2%E7%9A%84%E5%BC%80%E5%A7%8B/" data-id="cuid4C4947YvobCEajP4LgFs2" data-title="博客的开始" class="article-share-link"><span class="fa fa-share">Share</span></a>
       
       
       
@@ -254,7 +315,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://example.com/2025/11/05/hello-world/" data-id="cuidoQ1TPbwEi4t0_kQN0lZAT" data-title="Hello World" class="article-share-link"><span class="fa fa-share">Share</span></a>
+      <a data-url="http://example.com/2025/11/05/hello-world/" data-id="cuidh_dDb8GkMf4sIUXTWsdjk" data-title="Hello World" class="article-share-link"><span class="fa fa-share">Share</span></a>
       
       
       
@@ -289,7 +350,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Tag Cloud</h3>
     <div class="widget tagcloud">
-      <a href="/tags/SLAM/" style="font-size: 10px;">SLAM</a> <a href="/tags/%E9%9A%8F%E7%AC%94/" style="font-size: 20px;">随笔</a>
+      <a href="/tags/SLAM/" style="font-size: 10px;">SLAM</a> <a href="/tags/%E9%9A%8F%E7%AC%94/" style="font-size: 10px;">随笔</a>
     </div>
   </div>
 
@@ -309,6 +370,10 @@
     <h3 class="widget-title">Recent Posts</h3>
     <div class="widget">
       <ul>
+        
+          <li>
+            <a href="/2025/11/27/ESKF%E7%9A%84%E6%9E%84%E5%BB%BA%E6%B5%81%E7%A8%8B%E6%A8%A1%E6%9D%BF/">ESKF的构建流程模板</a>
+          </li>
         
           <li>
             <a href="/2025/11/17/IMU-%E8%BD%AE%E9%80%9F%E8%AE%A1%E7%9A%84ESKF%E7%AE%80%E6%98%8E%E4%BB%8B%E7%BB%8D/">IMU+轮速计的ESKF简明介绍</a>
