@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  
+  <title>BehaviorTree.CPP 核心：控制节点语义对比指南 | Hexo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="description" content="真正的核心不是 Action Node，而是 Control Node 的执行规则    一、Sequence vs Fallback（经典对比）Sequence（顺序执行）含义：一步一步完成任务逻辑：   A→B→CA \rightarrow B \rightarrow CA→B→C   规则：一个失败 → 全部失败适用场景：    导航流程   机器人抓取   工业流水线  Fallback（">
+<meta property="og:type" content="article">
+<meta property="og:title" content="BehaviorTree.CPP 核心：控制节点语义对比指南">
+<meta property="og:url" content="http://example.com/2026/05/21/BehaviorTree-CPP-%E6%A0%B8%E5%BF%83%EF%BC%9A%E6%8E%A7%E5%88%B6%E8%8A%82%E7%82%B9%E8%AF%AD%E4%B9%89%E5%AF%B9%E6%AF%94%E6%8C%87%E5%8D%97/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="真正的核心不是 Action Node，而是 Control Node 的执行规则    一、Sequence vs Fallback（经典对比）Sequence（顺序执行）含义：一步一步完成任务逻辑：   A→B→CA \rightarrow B \rightarrow CA→B→C   规则：一个失败 → 全部失败适用场景：    导航流程   机器人抓取   工业流水线  Fallback（">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2026-05-21T12:23:00.000Z">
+<meta property="article:modified_time" content="2026-05-21T12:26:44.000Z">
+<meta property="article:author" content="John Doe">
+<meta property="article:tag" content="BehaviorTree">
+<meta name="twitter:card" content="summary">
+  
+    <link rel="alternate" href="/atom.xml" title="Hexo" type="application/atom+xml">
+  
+  
+    <link rel="shortcut icon" href="/favicon.png">
+  
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+  
+    
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.min.css">
+
+  
+  
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fork-awesome@1.2.0/css/fork-awesome.min.css">
+
+<!-- hexo injector head_end start --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css" integrity="sha512-fHwaWebuwA7NSF5Qg/af4UeDx9XqUpYpOGgubo3yWu+b2IQR4UeQwbb42Ti7gVAjNtVoI/I9TEoYeu9omwcC6g==" crossorigin="anonymous" referrerpolicy="no-referrer" /><!-- hexo injector head_end end --><meta name="generator" content="Hexo 8.1.1"></head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">Hexo</a>
+      </h1>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"><span class="fa fa-bars"></span></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+        
+          <a class="nav-icon" href="/atom.xml" title="RSS Feed"><span class="fa fa-rss"></span></a>
+        
+        <a class="nav-icon nav-search-btn" title="Search"><span class="fa fa-search"></span></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://example.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+
+      <div class="outer">
+        <section id="main"><article id="post-BehaviorTree-CPP-核心：控制节点语义对比指南" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
+  <div class="article-meta">
+    <a href="/2026/05/21/BehaviorTree-CPP-%E6%A0%B8%E5%BF%83%EF%BC%9A%E6%8E%A7%E5%88%B6%E8%8A%82%E7%82%B9%E8%AF%AD%E4%B9%89%E5%AF%B9%E6%AF%94%E6%8C%87%E5%8D%97/" class="article-date">
+  <time class="dt-published" datetime="2026-05-21T12:23:00.000Z" itemprop="datePublished">2026-05-21</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="p-name article-title" itemprop="headline name">
+      BehaviorTree.CPP 核心：控制节点语义对比指南
+    </h1>
+  
+
+      </header>
+    
+    <div class="e-content article-entry" itemprop="articleBody">
+      
+        <p><strong>真正的核心不是 Action Node，而是 Control Node 的执行规则</strong>  </p>
+<hr>
+<h2 id="一、Sequence-vs-Fallback（经典对比）"><a href="#一、Sequence-vs-Fallback（经典对比）" class="headerlink" title="一、Sequence vs Fallback（经典对比）"></a>一、Sequence vs Fallback（经典对比）</h2><h3 id="Sequence（顺序执行）"><a href="#Sequence（顺序执行）" class="headerlink" title="Sequence（顺序执行）"></a>Sequence（顺序执行）</h3><p><strong>含义</strong>：<br><code>一步一步完成任务</code><br><strong>逻辑</strong>：  </p>
+<span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mi>A</mi><mo>→</mo><mi>B</mi><mo>→</mo><mi>C</mi></mrow><annotation encoding="application/x-tex">A \rightarrow B \rightarrow C</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord mathnormal">A</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">→</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.05017em;">B</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">→</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.07153em;">C</span></span></span></span></span>  
+<p><strong>规则</strong>：<br><code>一个失败 → 全部失败</code><br><strong>适用场景</strong>：  </p>
+<ul>
+<li>导航流程  </li>
+<li>机器人抓取  </li>
+<li>工业流水线</li>
+</ul>
+<h3 id="Fallback（选择器）"><a href="#Fallback（选择器）" class="headerlink" title="Fallback（选择器）"></a>Fallback（选择器）</h3><p><strong>含义</strong>：<br><code>一个失败就尝试下一个</code><br><strong>逻辑</strong>：<br><code>A OR B OR C</code><br><strong>规则</strong>：<br><code>一个成功 → 立刻停止</code>  </p>
+<span id="more"></span>
+
+<h3 id="示例对比"><a href="#示例对比" class="headerlink" title="示例对比"></a>示例对比</h3><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">&lt;!-- Fallback 示例 --&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">Fallback</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">OpenDoor</span>/&gt;</span>          <span class="comment">&lt;!-- 失败则尝试下一项 --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">AskHumanHelp</span>/&gt;</span>      <span class="comment">&lt;!-- 失败则尝试下一项 --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">FindAnotherPath</span>/&gt;</span>   <span class="comment">&lt;!-- 任一成功即终止 --&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">Fallback</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<p><strong>本质区别</strong>：  </p>
+<table>
+<thead>
+<tr>
+<th>节点类型</th>
+<th>执行目标</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Sequence</code></td>
+<td><strong>必须全部成功</strong></td>
+</tr>
+<tr>
+<td><code>Fallback</code></td>
+<td><strong>有一个成功即可</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="二、Retry-vs-RecoveryNode（机器人关键设计）"><a href="#二、Retry-vs-RecoveryNode（机器人关键设计）" class="headerlink" title="二、Retry vs RecoveryNode（机器人关键设计）"></a>二、Retry vs RecoveryNode（机器人关键设计）</h2><h3 id="RetryUntilSuccessful"><a href="#RetryUntilSuccessful" class="headerlink" title="RetryUntilSuccessful"></a>RetryUntilSuccessful</h3><p><strong>逻辑</strong>：<br><code>FAILURE → Retry</code><br><strong>行为</strong>：<br><code>失败 → 原地重试</code><br><strong>缺陷示例</strong>：  </p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">RetryUntilSuccessful</span> <span class="attr">num_attempts</span>=<span class="string">&quot;3&quot;</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">FollowPath</span>/&gt;</span> <span class="comment">&lt;!-- 路径堵死仍会硬试 --&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">RetryUntilSuccessful</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="RecoveryNode"><a href="#RecoveryNode" class="headerlink" title="RecoveryNode"></a>RecoveryNode</h3><p><strong>逻辑</strong>：<br><code>FAILURE → Recovery → Retry</code><br><strong>行为</strong>：<br><code>失败 → 恢复环境 → 再试</code><br><strong>合理设计</strong>：  </p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">RecoveryNode</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">FollowPath</span>/&gt;</span>      <span class="comment">&lt;!-- 跟踪失败触发恢复 --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">ClearCostmap</span>/&gt;</span>    <span class="comment">&lt;!-- 清除障碍物后重试 --&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">RecoveryNode</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="三、Sequence-vs-ReactiveSequence（记忆式-vs-实时检查式）"><a href="#三、Sequence-vs-ReactiveSequence（记忆式-vs-实时检查式）" class="headerlink" title="三、Sequence vs ReactiveSequence（记忆式 vs 实时检查式）"></a>三、Sequence vs ReactiveSequence（记忆式 vs 实时检查式）</h2><h3 id="普通-Sequence"><a href="#普通-Sequence" class="headerlink" title="普通 Sequence"></a>普通 Sequence</h3><p><strong>特点</strong>：<br><code>RUNNING 时记住当前位置</code><br><strong>行为</strong>：  </p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">1. Tick1: CheckBattery → SUCCESS  </span><br><span class="line">2. Tick2: 直接继续 Navigate（不再检查电量）</span><br></pre></td></tr></table></figure>
+
+<h3 id="ReactiveSequence"><a href="#ReactiveSequence" class="headerlink" title="ReactiveSequence"></a>ReactiveSequence</h3><p><strong>特点</strong>：<br><code>每次 Tick 从头重新检查</code><br><strong>行为</strong>：  </p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">电量突然降低 → 立刻中断 Navigate</span><br></pre></td></tr></table></figure>
+
+<p><strong>本质区别</strong>：  </p>
+<table>
+<thead>
+<tr>
+<th>节点类型</th>
+<th>优先级</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Sequence</code></td>
+<td><strong>任务连续性优先</strong></td>
+</tr>
+<tr>
+<td><code>ReactiveSequence</code></td>
+<td><strong>实时条件响应优先</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="四、Sequence-vs-PipelineSequence（Nav2-核心）"><a href="#四、Sequence-vs-PipelineSequence（Nav2-核心）" class="headerlink" title="四、Sequence vs PipelineSequence（Nav2 核心）"></a>四、Sequence vs PipelineSequence（Nav2 核心）</h2><h3 id="普通-Sequence-1"><a href="#普通-Sequence-1" class="headerlink" title="普通 Sequence"></a>普通 Sequence</h3><p><strong>规则</strong>：<br><code>前一个完成 → 后一个才运行</code><br><strong>导航表现</strong>：<br><code>规划一次 → 一直跟踪旧路径</code>  </p>
+<h3 id="PipelineSequence"><a href="#PipelineSequence" class="headerlink" title="PipelineSequence"></a>PipelineSequence</h3><p><strong>规则</strong>：<br><code>后续节点 RUNNING 时，前面节点仍可 Tick</code><br><strong>导航表现</strong>：<br><code>边跟踪路径 → 边动态重规划</code>  </p>
+<blockquote>
+<p>💡 <strong>关键价值</strong>：这是 Nav2 实现 <strong>动态重规划</strong> 的核心机制  </p>
+</blockquote>
+<hr>
+<h2 id="五、Fallback-vs-ReactiveFallback（静态选择-vs-动态切换）"><a href="#五、Fallback-vs-ReactiveFallback（静态选择-vs-动态切换）" class="headerlink" title="五、Fallback vs ReactiveFallback（静态选择 vs 动态切换）"></a>五、Fallback vs ReactiveFallback（静态选择 vs 动态切换）</h2><h3 id="普通-Fallback"><a href="#普通-Fallback" class="headerlink" title="普通 Fallback"></a>普通 Fallback</h3><p><strong>行为</strong>：<br><code>首次选中节点后持续执行，不重新检查高优先级条件</code>  </p>
+<h3 id="ReactiveFallback"><a href="#ReactiveFallback" class="headerlink" title="ReactiveFallback"></a>ReactiveFallback</h3><p><strong>行为</strong>：<br><code>每次 Tick 重新评估所有子节点优先级</code><br><strong>示例</strong>：  </p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">ReactiveFallback</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">EmergencyStop</span>/&gt;</span>  <span class="comment">&lt;!-- 高优先级：急停信号触发时立即中断 --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">FollowPath</span>/&gt;</span>     <span class="comment">&lt;!-- 正常执行中 --&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">ReactiveFallback</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<p><strong>动态响应</strong>：<br><code>急停信号出现 → 下一次 Tick 立即切换到 EmergencyStop</code>  </p>
+<hr>
+<h2 id="六、Control-Node-vs-Decorator（流程控制-vs-行为修饰）"><a href="#六、Control-Node-vs-Decorator（流程控制-vs-行为修饰）" class="headerlink" title="六、Control Node vs Decorator（流程控制 vs 行为修饰）"></a>六、Control Node vs Decorator（流程控制 vs 行为修饰）</h2><table>
+<thead>
+<tr>
+<th>类型</th>
+<th>作用对象</th>
+<th>典型节点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Control Node</strong></td>
+<td><strong>多个子节点关系</strong></td>
+<td>Sequence, Fallback, Parallel</td>
+</tr>
+<tr>
+<td><strong>Decorator</strong></td>
+<td><strong>单个子节点行为</strong></td>
+<td>Retry, Timeout, ForceSuccess</td>
+</tr>
+</tbody></table>
+<h3 id="对比示例"><a href="#对比示例" class="headerlink" title="对比示例"></a>对比示例</h3><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">&lt;!-- Control Node（控制多节点流程） --&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">Sequence</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">A</span>/&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">B</span>/&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">Sequence</span>&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="comment">&lt;!-- Decorator（修饰单节点行为） --&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">RetryUntilSuccessful</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">A</span>/&gt;</span> <span class="comment">&lt;!-- 仅修饰A的行为 --&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">RetryUntilSuccessful</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="七、ForceSuccess-vs-ForceFailure（结果重写器）"><a href="#七、ForceSuccess-vs-ForceFailure（结果重写器）" class="headerlink" title="七、ForceSuccess vs ForceFailure（结果重写器）"></a>七、ForceSuccess vs ForceFailure（结果重写器）</h2><table>
+<thead>
+<tr>
+<th>节点</th>
+<th>行为</th>
+<th>典型用途</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>ForceSuccess</code></td>
+<td><strong>强制子节点返回 SUCCESS</strong></td>
+<td>错误日志记录（不影响主流程）</td>
+</tr>
+<tr>
+<td><code>ForceFailure</code></td>
+<td><strong>强制子节点返回 FAILURE</strong></td>
+<td>故障注入测试</td>
+</tr>
+</tbody></table>
+<p><strong>实用场景</strong>：  </p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">ForceSuccess</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">LogError</span>/&gt;</span> <span class="comment">&lt;!-- 记录错误但不中断任务 --&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">ForceSuccess</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="八、Parallel-vs-Sequence（并发控制）"><a href="#八、Parallel-vs-Sequence（并发控制）" class="headerlink" title="八、Parallel vs Sequence（并发控制）"></a>八、Parallel vs Sequence（并发控制）</h2><h3 id="Parallel"><a href="#Parallel" class="headerlink" title="Parallel"></a>Parallel</h3><p><strong>规则</strong>：<br><code>同时 Tick 所有子节点</code><br><strong>关键参数</strong>：<br><code>success_threshold=&quot;N&quot;</code>（需 N 个子节点成功）<br><strong>机器人示例</strong>：  </p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">Parallel</span> <span class="attr">success_threshold</span>=<span class="string">&quot;2&quot;</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">FollowPath</span>/&gt;</span>      <span class="comment">&lt;!-- 路径跟踪 --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">MonitorBattery</span>/&gt;</span>   <span class="comment">&lt;!-- 低电量检测 --&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">MonitorObstacle</span>/&gt;</span> <span class="comment">&lt;!-- 障碍物监测 --&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">Parallel</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<p><strong>语义</strong>：<br><code>导航同时监控系统状态，2 项正常即视为成功</code></p>
+<hr>
+<h2 id="终极对比表：机器人领域核心控制节点"><a href="#终极对比表：机器人领域核心控制节点" class="headerlink" title="终极对比表：机器人领域核心控制节点"></a>终极对比表：机器人领域核心控制节点</h2><table>
+<thead>
+<tr>
+<th><strong>对比维度</strong></th>
+<th><strong>节点 A</strong></th>
+<th><strong>节点 B</strong></th>
+<th><strong>本质差异</strong></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>任务完成逻辑</td>
+<td>Sequence</td>
+<td>Fallback</td>
+<td>全成功 vs 一个成功</td>
+</tr>
+<tr>
+<td>失败处理策略</td>
+<td>Retry</td>
+<td>RecoveryNode</td>
+<td>硬重试 vs 恢复后重试</td>
+</tr>
+<tr>
+<td>条件检查方式</td>
+<td>Sequence</td>
+<td>ReactiveSequence</td>
+<td>记忆式 vs 实时重检查</td>
+</tr>
+<tr>
+<td>路径规划机制</td>
+<td>Sequence</td>
+<td>PipelineSequence</td>
+<td>串行执行 vs 流水线重规划</td>
+</tr>
+<tr>
+<td>选择器响应性</td>
+<td>Fallback</td>
+<td>ReactiveFallback</td>
+<td>静态选择 vs 动态抢占</td>
+</tr>
+<tr>
+<td>作用范围</td>
+<td>Control Node</td>
+<td>Decorator</td>
+<td>多节点流程 vs 单节点修饰</td>
+</tr>
+<tr>
+<td>结果强制</td>
+<td>ForceSuccess</td>
+<td>ForceFailure</td>
+<td>结果重写方向</td>
+</tr>
+<tr>
+<td>执行模式</td>
+<td>Sequence</td>
+<td>Parallel</td>
+<td>串行 vs 并发</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="Nav2-的核心思想：反应式任务系统"><a href="#Nav2-的核心思想：反应式任务系统" class="headerlink" title="Nav2 的核心思想：反应式任务系统"></a>Nav2 的核心思想：反应式任务系统</h2><p>BehaviorTree.CPP 在机器人领域的强大源于 <strong>分层反应式设计</strong>：  </p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">graph TD</span><br><span class="line">    A[ReactiveFallback] --&gt;|全局抢占| B[RecoveryNode]</span><br><span class="line">    B --&gt;|局部恢复| C[PipelineSequence]</span><br><span class="line">    C --&gt;|动态重规划| D[Sequence]</span><br><span class="line">    D --&gt;|基础任务| E[Action Nodes]</span><br></pre></td></tr></table></figure>
+<p><strong>这不是状态机</strong>，而是：<br>✅ <strong>条件驱动</strong>的实时响应系统<br>✅ <strong>分层恢复</strong>的鲁棒任务执行<br>✅ <strong>数据流隐式传递</strong>（通过 Blackboard）  </p>
+<blockquote>
+<p>掌握这些控制节点的<strong>精确语义差异</strong>，才是 BehaviorTree.CPP 实战开发的核心能力。</p>
+</blockquote>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://example.com/2026/05/21/BehaviorTree-CPP-%E6%A0%B8%E5%BF%83%EF%BC%9A%E6%8E%A7%E5%88%B6%E8%8A%82%E7%82%B9%E8%AF%AD%E4%B9%89%E5%AF%B9%E6%AF%94%E6%8C%87%E5%8D%97/" data-id="cuidxhX4ExnnkTKPYwSGKB634" data-title="BehaviorTree.CPP 核心：控制节点语义对比指南" class="article-share-link"><span class="fa fa-share">Share</span></a>
+      
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/BehaviorTree/" rel="tag">BehaviorTree</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2026/05/21/BehaviorTree-%E6%A0%B8%E5%BF%83%EF%BC%9ADecorator-Node-%E6%B5%81%E7%A8%8B%E5%BD%B1%E5%93%8D/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          BehaviorTree 核心：Decorator Node 流程影响
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2026/05/21/BehaviorTree-CPP-%E6%A0%B8%E5%BF%83%E6%9C%BA%E5%88%B6%EF%BC%9A%E8%8A%82%E7%82%B9%E6%B3%A8%E5%86%8C%E4%BD%93%E7%B3%BB%E4%B8%8E%E5%B7%A5%E7%A8%8B%E6%9C%AC%E8%B4%A8/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">BehaviorTree.CPP 核心机制：节点注册体系与工程本质</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+</section>
+        
+          <aside id="sidebar">
+  
+    
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/tags/BehaviorTree/" rel="tag">BehaviorTree</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/SLAM/" rel="tag">SLAM</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E9%9A%8F%E7%AC%94/" rel="tag">随笔</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/BehaviorTree/" style="font-size: 20px;">BehaviorTree</a> <a href="/tags/SLAM/" style="font-size: 10px;">SLAM</a> <a href="/tags/%E9%9A%8F%E7%AC%94/" style="font-size: 10px;">随笔</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2026/05/">May 2026</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2025/11/">November 2025</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recent Posts</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2026/05/21/BehaviorTree-%E6%A0%B8%E5%BF%83%EF%BC%9ADecorator-Node-%E6%B5%81%E7%A8%8B%E5%BD%B1%E5%93%8D/">BehaviorTree 核心：Decorator Node 流程影响</a>
+          </li>
+        
+          <li>
+            <a href="/2026/05/21/BehaviorTree-CPP-%E6%A0%B8%E5%BF%83%EF%BC%9A%E6%8E%A7%E5%88%B6%E8%8A%82%E7%82%B9%E8%AF%AD%E4%B9%89%E5%AF%B9%E6%AF%94%E6%8C%87%E5%8D%97/">BehaviorTree.CPP 核心：控制节点语义对比指南</a>
+          </li>
+        
+          <li>
+            <a href="/2026/05/21/BehaviorTree-CPP-%E6%A0%B8%E5%BF%83%E6%9C%BA%E5%88%B6%EF%BC%9A%E8%8A%82%E7%82%B9%E6%B3%A8%E5%86%8C%E4%BD%93%E7%B3%BB%E4%B8%8E%E5%B7%A5%E7%A8%8B%E6%9C%AC%E8%B4%A8/">BehaviorTree.CPP 核心机制：节点注册体系与工程本质</a>
+          </li>
+        
+          <li>
+            <a href="/2025/11/27/ESKF%E7%9A%84%E6%9E%84%E5%BB%BA%E6%B5%81%E7%A8%8B%E6%A8%A1%E6%9D%BF/">ESKF的构建流程模板</a>
+          </li>
+        
+          <li>
+            <a href="/2025/11/17/IMU-%E8%BD%AE%E9%80%9F%E8%AE%A1%E7%9A%84ESKF%E7%AE%80%E6%98%8E%E4%BB%8B%E7%BB%8D/">IMU+轮速计的ESKF简明介绍</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      
+      &copy; 2026 John Doe<br>
+      Powered by <a href="https://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+</nav>
+    
+
+
+<script src="/js/jquery-3.6.4.min.js"></script>
+
+
+
+  
+<script src="/fancybox/jquery.fancybox.min.js"></script>
+
+
+
+
+<script src="/js/script.js"></script>
+
+
+
+
+
+  </div>
+</body>
+</html>
