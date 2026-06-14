@@ -14,7 +14,7 @@
 <meta property="og:description" content="在 SLAM、三维重建或相机标定等优化问题中，我们经常会遇到数据中存在“离群点”的情况。如果使用标准的最小二乘法，这些离群点往往会把整个优化结果“带偏”。 Ceres Solver 中提供的 CauchyLoss 是解决这一问题的利器。本文将从数学原理出发，深入剖析为什么鲁棒核能抑制离群点，以及 Ceres 内部是如何通过导数实现动态权重的。  1. 为什么我们需要鲁棒核？在标准的非线性最小二乘问">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2026-06-14T11:23:47.000Z">
-<meta property="article:modified_time" content="2026-06-14T11:25:04.000Z">
+<meta property="article:modified_time" content="2026-06-14T11:27:24.000Z">
 <meta property="article:author" content="John Doe">
 <meta property="article:tag" content="Ceres">
 <meta name="twitter:card" content="summary">
@@ -142,6 +142,7 @@
 </tr>
 </tbody></table>
 <p>可以看到，正常点的总贡献仅为 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>0.14</mn></mrow><annotation encoding="application/x-tex">0.14</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">0.14</span></span></span></span>，而离群点的贡献高达 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>100</mn></mrow><annotation encoding="application/x-tex">100</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">100</span></span></span></span>。优化器为了讨好这个离群点，会不惜牺牲所有正常点的精度，导致结果发散。</p>
+<span id="more"></span>
 <hr>
 <h4 id="2-鲁棒核的目标：给残差“降权”"><a href="#2-鲁棒核的目标：给残差“降权”" class="headerlink" title="2. 鲁棒核的目标：给残差“降权”"></a>2. 鲁棒核的目标：给残差“降权”</h4><p>为了解决上述问题，我们引入<strong>鲁棒核函数</strong>，将优化目标修改为：</p>
 <span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><munder><mrow><mi>min</mi><mo>⁡</mo></mrow><mi>x</mi></munder><mfrac><mn>1</mn><mn>2</mn></mfrac><munder><mo>∑</mo><mi>i</mi></munder><mi>ρ</mi><mo stretchy="false">(</mo><msubsup><mi>r</mi><mi>i</mi><mn>2</mn></msubsup><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">
